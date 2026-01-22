@@ -1,6 +1,6 @@
 "use server";
 
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
 import { getHistory } from "./actions";
@@ -14,6 +14,9 @@ export default async function Page() {
   return (
     <div className="mx-auto mt-8 flex max-w-360">
       <InterviewClient history={[]} />
+      <Link href="/dashboard/result">
+        <LogOut />
+      </Link>
     </div>
   );
 }

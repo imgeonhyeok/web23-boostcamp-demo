@@ -2,21 +2,31 @@ import { useState, useEffect } from "react";
 import { DocumentItem } from "@/app/(tabs)/(simulator)/components/document-card";
 
 // API 응답 타입 정의
-interface ApiDocumentItem {
+interface ApiCoverLetter {
   documentId: string;
   type: "COVER" | "PORTFOLIO";
   title: string;
   createdAt: string;
 }
 
-interface DocumentResponse {
-  list: ApiDocumentItem[];
+interface CoverLetterResponse {
+  documents: ApiCoverLetter[];
+  totalPage?: number;
 }
-
 // 서버가 응답하지 않을 때 보여줄 임시 데이터
 const FALLBACK_MOCK_DATA: DocumentItem[] = [
-  { id: "mock-1", type: "COVER_LETTER", title: "[서버연결실패] 2024 하반기 공통 자소서", date: "2024.05.12" },
-  { id: "mock-2", type: "PORTFOLIO", title: "[서버연결실패] FE 아키텍트 포트폴리오", date: "2024.04.28" },
+  {
+    id: "mock-1",
+    type: "COVER_LETTER",
+    title: "[서버연결실패] 2024 하반기 공통 자소서",
+    date: "2024.05.12",
+  },
+  {
+    id: "mock-2",
+    type: "PORTFOLIO",
+    title: "[서버연결실패] FE 아키텍트 포트폴리오",
+    date: "2024.04.28",
+  },
 ];
 
 export function useDocuments(userId: string) {
@@ -29,25 +39,25 @@ export function useDocuments(userId: string) {
     const loadDocs = async () => {
       try {
         setIsLoading(true);
-        
+
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/documents?userId=${userId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/document?page=1&take=10`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
 
         if (!res.ok) throw new Error("서류 목록 조회 실패");
 
-        const data: DocumentResponse = await res.json();
+        const data: CoverLetterResponse = await res.json();
 
-        const mapped: DocumentItem[] = data.list.map((item) => ({
+        const mapped: DocumentItem[] = (data.documents || []).map((item) => ({
           id: item.documentId,
           type: item.type === "COVER" ? "COVER_LETTER" : "PORTFOLIO",
           title: item.title,
-          description: "", 
-          date: item.createdAt.split("T")[0].replace(/-/g, "."),
+          description: "",
+          date: item.createdAt?.split("T")[0].replace(/-/g, ".") || "",
         }));
 
         setDocuments(mapped);

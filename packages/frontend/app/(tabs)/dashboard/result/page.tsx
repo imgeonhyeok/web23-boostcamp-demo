@@ -1,7 +1,6 @@
-import { Bot, Heart, HeartOff } from "lucide-react";
+import { Heart, HeartOff } from "lucide-react";
 
 import ChatHistory from "@/app/components/chat-history";
-import { Skeleton } from "@/app/components/ui/skeleton";
 import { Button } from "@/app/components/ui/button";
 import { buildChatHistory } from "@/app/lib/client/chat";
 
@@ -9,10 +8,31 @@ import RecentRecording from "./components/recent-recording";
 import Panel from "./components/panel";
 import Tip from "./components/tip";
 import { getHistory } from "../../(simulator)/interview/[id]/actions";
+import Score from "./components/score";
+import { getFeedback } from "./actions";
+import AISummary from "./components/ai-summary";
 
+async function startFeedback() {
+  "use server";
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/interview/feedback`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interviewId: "1" }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("API 요청 실패");
+  }
+}
 
 export default async function InterviewResultPage() {
+  await startFeedback();
   const { history } = await getHistory({ interviewId: "1" });
+  const feedbackResult = await getFeedback({ interviewId: "1" });
 
   return (
     <div className="mt-5 w-full pb-5">
@@ -29,12 +49,11 @@ export default async function InterviewResultPage() {
           </div>
         </div>
         <div className="flex flex-col gap-6 md:flex-row">
-          <Skeleton className="flex flex-1 items-center justify-center gap-4 rounded-2xl border p-5 shadow">
-            <Bot />
-          </Skeleton>
-          {/* <Panel className="flex-1 p-5">
-            <Score />
-          </Panel> */}
+          {
+            <Panel className="flex-1 p-5">
+              <Score score={+feedbackResult.score} />
+            </Panel>
+          }
           <Panel className="flex-2 p-5">
             <RecentRecording />
           </Panel>
@@ -46,12 +65,11 @@ export default async function InterviewResultPage() {
               className="max-h-120"
             />
           </Panel>
-          <Skeleton className="flex flex-1 items-center justify-center gap-4 rounded-2xl border p-5 shadow">
-            <Bot />
-          </Skeleton>
-          {/* <Panel className="flex-1 p-5">
-            <AISummary />
-          </Panel> */}
+          {
+            <Panel className="flex-1 p-5">
+              <AISummary summary={feedbackResult.content} />
+            </Panel>
+          }
         </div>
         <div className="flex flex-col gap-6 md:flex-row">
           <Panel className="flex-1 bg-primary/5 p-5">

@@ -65,8 +65,7 @@ export default function InterviewCreatePage() {
 
       const requestBody = isTech
         ? {
-            simulationTitle: title,
-            documentsIds: [
+            documentIds: [
               selectedDocs.COVER_LETTER,
               selectedDocs.PORTFOLIO,
             ].filter(Boolean),
@@ -93,7 +92,7 @@ export default function InterviewCreatePage() {
 
       const interviewId = data.interviewId;
 
-      router.push(`/interview/${interviewId}/setting`);
+      router.push(`/interview/${interviewId}/ready`);
     } catch (error) {
       console.error("Error:", error);
       alert("생성 중 오류가 발생했습니다.");
