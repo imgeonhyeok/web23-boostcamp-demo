@@ -6,6 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Portfolio } from './portfolio.entity';
@@ -30,11 +31,16 @@ export class Document {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
+  @UpdateDateColumn({ name: 'modified_at' })
+  modifiedAt: Date;
+
   @ManyToOne(() => User, (user) => user.documents)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToOne(() => Portfolio, (portfolio) => portfolio.document)
+  @OneToOne(() => Portfolio, (portfolio) => portfolio.document, {
+    cascade: true,
+  })
   portfolio: Portfolio;
 
   @OneToOne(() => CoverLetter, (coverLetter) => coverLetter.document)
