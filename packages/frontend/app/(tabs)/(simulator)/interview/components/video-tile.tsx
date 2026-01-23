@@ -19,18 +19,19 @@ export default forwardRef<
       )}
     >
       <video
+        id={label === "You" ? "you-video" : undefined}
         ref={ref}
         autoPlay
         playsInline
         muted
         className={cn(
           "aspect-video w-full bg-primary/20 object-cover",
-          !isOn && "hidden",
+          !isOn && label !== "You" && "hidden",
         )}
       ></video>
 
       {/* 카메라 꺼진 상태 표시 */}
-      {!isOn && (
+      {!isOn && label !== "You" && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="text-center">
             <Ghost className="mx-auto mb-2 size-12 text-gray-500" />

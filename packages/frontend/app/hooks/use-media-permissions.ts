@@ -44,6 +44,8 @@ export const useMediaPermissions = () => {
 
         const track = stream.getVideoTracks()[0];
         setVideoDeviceId(track.getSettings().deviceId || null);
+        console.debug("requestVideo -> setIsVideoEnabled", track.enabled);
+        console.trace();
         setIsVideoEnabled(track.enabled);
 
         await getMediaDevices();
@@ -113,14 +115,26 @@ export const useMediaPermissions = () => {
     audioStream?.getTracks().forEach((track) => track.stop());
     setVideoStream(null);
     setAudioStream(null);
+    console.debug("stopMediaStream -> setIsVideoEnabled false");
+    console.trace();
     setIsVideoEnabled(false);
+    console.debug("stopMediaStream -> setIsAudioEnabled false");
+    console.trace();
     setIsAudioEnabled(false);
   }, [videoStream, audioStream]);
 
   // 트랙 상태 감시 (시스템에 의한 종료 대응)
   useEffect(() => {
-    const handleVideoEnded = () => setIsVideoEnabled(false);
-    const handleAudioEnded = () => setIsAudioEnabled(false);
+    const handleVideoEnded = () => {
+      console.debug("videoTrack ended -> setIsVideoEnabled false");
+      console.trace();
+      setIsVideoEnabled(false);
+    };
+    const handleAudioEnded = () => {
+      console.debug("audioTrack ended -> setIsAudioEnabled false");
+      console.trace();
+      setIsAudioEnabled(false);
+    };
 
     const videoTrack = videoStream?.getVideoTracks()[0];
     const audioTrack = audioStream?.getAudioTracks()[0];
@@ -136,20 +150,46 @@ export const useMediaPermissions = () => {
 
   const toggleVideo = useCallback(
     (enabled: boolean) => {
-      videoStream
-        ?.getVideoTracks()
-        .forEach((track) => (track.enabled = enabled));
-      setIsVideoEnabled(enabled);
+      try {
+        const current = videoStream?.getVideoTracks()[0]?.enabled;
+        if (current === enabled) {
+          console.debug("toggleVideo: already", enabled);
+          console.trace();
+          setIsVideoEnabled(enabled);
+          return;
+        }
+        videoStream
+          ?.getVideoTracks()
+          .forEach((track) => (track.enabled = enabled));
+        console.debug("toggleVideo: set", enabled);
+        console.trace();
+        setIsVideoEnabled(enabled);
+      } catch (err) {
+        console.debug("toggleVideo error", err);
+      }
     },
     [videoStream],
   );
 
   const toggleAudio = useCallback(
     (enabled: boolean) => {
-      audioStream
-        ?.getAudioTracks()
-        .forEach((track) => (track.enabled = enabled));
-      setIsAudioEnabled(enabled);
+      try {
+        const current = audioStream?.getAudioTracks()[0]?.enabled;
+        if (current === enabled) {
+          console.debug("toggleAudio: already", enabled);
+          console.trace();
+          setIsAudioEnabled(enabled);
+          return;
+        }
+        audioStream
+          ?.getAudioTracks()
+          .forEach((track) => (track.enabled = enabled));
+        console.debug("toggleAudio: set", enabled);
+        console.trace();
+        setIsAudioEnabled(enabled);
+      } catch (err) {
+        console.debug("toggleAudio error", err);
+      }
     },
     [audioStream],
   );

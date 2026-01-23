@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import {
   Mic,
   MicOff,
@@ -12,15 +13,15 @@ import {
 import { Button } from "@/app/components/ui/button";
 
 interface InterviewControlsProps {
-  onToggleChat: () => void;
-  onExit: () => void;
+  onToggleChat: (newState?: boolean) => void;
+  onExit: (path?: string) => void;
   isVideoEnabled: boolean;
   isAudioEnabled: boolean;
   onToggleVideo: () => void;
   onToggleAudio: () => void;
 }
 
-export function InterviewControls({
+function InterviewControlsComponent({
   onToggleChat,
   onExit,
   isVideoEnabled,
@@ -35,9 +36,9 @@ export function InterviewControls({
           size="icon"
           variant="ghost"
           onClick={onToggleAudio}
-          className={`text-white hover:bg-white/20 ${
-            isAudioEnabled ? "" : "opacity-50"
-          }`}
+          className={`text-white hover:bg-white/20 ${isAudioEnabled ? "" : "opacity-50"}`}
+          aria-pressed={isAudioEnabled}
+          title={isAudioEnabled ? "Mute microphone" : "Unmute microphone"}
         >
           {isAudioEnabled ? <Mic /> : <MicOff />}
         </Button>
@@ -46,9 +47,9 @@ export function InterviewControls({
           size="icon"
           variant="ghost"
           onClick={onToggleVideo}
-          className={`text-white hover:bg-white/20 ${
-            isVideoEnabled ? "bg-red-500/30" : ""
-          }`}
+          className={`text-white hover:bg-white/20 ${isVideoEnabled ? "bg-red-500/30" : ""}`}
+          aria-pressed={isVideoEnabled}
+          title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
         >
           {isVideoEnabled ? <Video /> : <VideoOff />}
         </Button>
@@ -56,8 +57,9 @@ export function InterviewControls({
         <Button
           size="icon"
           variant="ghost"
-          onClick={onToggleChat}
+          onClick={() => onToggleChat()}
           className="text-white hover:bg-white/20"
+          title="Toggle chat panel"
         >
           <MessageSquare />
         </Button>
@@ -65,7 +67,7 @@ export function InterviewControls({
         <Button
           size="icon"
           variant="ghost"
-          onClick={onExit}
+          onClick={() => onExit("/dashboard/result")}
           className="text-white hover:bg-white/20"
           title="Exit interview"
         >
@@ -75,3 +77,5 @@ export function InterviewControls({
     </div>
   );
 }
+
+export const InterviewControls = memo(InterviewControlsComponent);

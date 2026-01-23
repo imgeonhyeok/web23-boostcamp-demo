@@ -10,7 +10,7 @@ export default function Panel({ children, className }: IPanelProps) {
   return (
     <div
       className={clsx(
-        "flex flex-col items-center justify-center gap-4 rounded-2xl border shadow-md",
+        "flex min-h-0 flex-col items-center justify-center gap-4 rounded-2xl border shadow-md",
         className,
       )}
     >

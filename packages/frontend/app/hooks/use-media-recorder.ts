@@ -68,6 +68,13 @@ const startMediaRecorderSafely = (
   setIsRecording: (value: boolean) => void,
 ) => {
   try {
+    // MediaRecorder가 이미 recording 또는 paused 상태면 시작하지 않음
+    if (mediaRecorder.state !== "inactive") {
+      console.warn(
+        `${errorContext} MediaRecorder가 이미 ${mediaRecorder.state} 상태입니다.`,
+      );
+      return false;
+    }
     mediaRecorder.start();
     setIsRecording(true);
     return true;

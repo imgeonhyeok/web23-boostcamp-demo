@@ -53,9 +53,7 @@ export default function InterviewCreatePage() {
 
   const handleStartSimulation = async (): Promise<void> => {
     if (!title || (!selectedDocs.COVER_LETTER && !selectedDocs.PORTFOLIO))
-      return;
-
-    setIsSubmitting(true);
+      setIsSubmitting(true);
 
     try {
       const isTech = mode === "tech";
@@ -92,7 +90,7 @@ export default function InterviewCreatePage() {
 
       const interviewId = data.interviewId;
 
-      router.push(`/interview/${interviewId}/ready`);
+      router.push(`/interview/1/ready`);
     } catch (error) {
       console.error("Error:", error);
       alert("생성 중 오류가 발생했습니다.");

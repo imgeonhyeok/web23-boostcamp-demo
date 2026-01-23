@@ -16,6 +16,7 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
   const router = useRouter();
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [chats, setChats] = useState<IChatMessage[]>(buildChatHistory(history));
@@ -34,35 +35,109 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
     isAudioEnabled,
   } = useMediaPermissions();
 
+  // minimal: avoid noisy render logs
+
   useEffect(() => {
     if (!mediaStreamRef.current && typeof window !== "undefined") {
       mediaStreamRef.current = new MediaStream();
+      setMediaStream(mediaStreamRef.current);
     }
   }, []);
 
   useEffect(() => {
-    if (!mediaStreamRef.current) return;
+    // Compose a new MediaStream from cloned tracks so the composed stream
+    // doesn't become unusable if the source streams are stopped/replaced.
+    try {
+      const videoTracks = videoStream?.getVideoTracks() ?? [];
+      const audioTracks = audioStream?.getAudioTracks() ?? [];
 
-    const stream = mediaStreamRef.current;
+      if (videoTracks.length === 0 && audioTracks.length === 0) {
+        // no tracks -> keep current composed stream (may be empty)
+        setMediaStream(mediaStreamRef.current);
+        return;
+      }
 
-    // video track
-    if (videoStream) {
-      videoStream.getTracks().forEach((track) => {
-        if (!stream.getTracks().includes(track)) {
-          stream.addTrack(track);
-        }
-      });
-    }
+      // stop previous composed tracks if any
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
 
-    // audio track
-    if (audioStream) {
-      audioStream.getTracks().forEach((track) => {
-        if (!stream.getTracks().includes(track)) {
-          stream.addTrack(track);
-        }
-      });
+      const cloned = new MediaStream([
+        ...videoTracks.map((t) => t.clone()),
+        ...audioTracks.map((t) => t.clone()),
+      ]);
+
+      mediaStreamRef.current = cloned;
+      setMediaStream(cloned);
+    } catch (err) {
+      console.debug("useInterviewControls: compose stream error", err);
     }
   }, [videoStream, audioStream]);
+
+  // Reflect toggle state onto the composed stream's tracks so UI/Video element
+  // follows user toggles even when using cloned tracks.
+  useEffect(() => {
+    const s = mediaStreamRef.current;
+    if (!s) return;
+
+    try {
+      s.getVideoTracks().forEach((t) => {
+        t.enabled = isVideoEnabled;
+      });
+      s.getAudioTracks().forEach((t) => {
+        t.enabled = isAudioEnabled;
+      });
+    } catch (err) {
+      // ignore
+    }
+  }, [isVideoEnabled, isAudioEnabled]);
+
+  // Fallback: try to attach the composed mediaStream directly to the local
+  // `you-video` element in case component attachment logic misses it.
+  useEffect(() => {
+    const s = mediaStream;
+    if (!s || typeof document === "undefined") return;
+
+    let stopped = false;
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const iv = setInterval(() => {
+      if (stopped) return;
+      attempts += 1;
+      try {
+        const el = document.getElementById(
+          "you-video",
+        ) as HTMLVideoElement | null;
+        if (!el) return;
+        el.srcObject = s;
+        el.muted = true;
+        const p = el.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            clearInterval(iv);
+            stopped = true;
+          }).catch(() => {
+            if (attempts >= maxAttempts) {
+              clearInterval(iv);
+              stopped = true;
+            }
+          });
+        } else {
+          clearInterval(iv);
+          stopped = true;
+        }
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          clearInterval(iv);
+          stopped = true;
+        }
+      }
+    }, 200);
+
+    return () => {
+      stopped = true;
+      clearInterval(iv);
+    };
+  }, [mediaStream]);
 
   ////////// Media recording //////////
   const {
@@ -74,25 +149,27 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
   } = useMediaRecorder(mediaStreamRef.current);
 
   // Initialize media permissions and start recording
+  // Request permissions once on mount. Avoid re-running on stream changes
+  // because the cleanup previously stopped streams when deps changed,
+  // causing a mount/unmount loop.
   useEffect(() => {
     const start = async () => {
-      if (!videoStream && !audioStream) {
-        const videoResult = await requestVideo();
-        const audioResult = await requestAudio();
-
-        if (!videoResult) {
-          console.warn("Video permission failed or not available");
-        }
-        if (!audioResult) {
-          console.warn("Audio permission failed or not available");
+      // Request any missing permissions individually so we don't skip
+      // video when audio is already available (or vice versa).
+      try {
+        if (!videoStream) {
+          const videoResult = await requestVideo();
+          if (!videoResult)
+            console.warn("Video permission failed or not available");
         }
 
-        if (!videoResult && !audioResult) {
-          console.error("Both video and audio permissions failed");
-          return;
+        if (!audioStream) {
+          const audioResult = await requestAudio();
+          if (!audioResult)
+            console.warn("Audio permission failed or not available");
         }
-
-        return;
+      } catch (err) {
+        console.error("Error requesting media permissions", err);
       }
     };
 
@@ -102,30 +179,45 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
       stopAudioRecording();
       stopMediaStream();
     };
-  }, [
-    videoStream,
-    audioStream,
-    requestVideo,
-    requestAudio,
-    startVideoRecording,
-    stopVideoRecording,
-    startAudioRecording,
-    stopAudioRecording,
-    stopMediaStream,
-  ]);
+    // Intentionally empty deps: run only on mount/unmount to avoid cleanup loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    startVideoRecording();
-    startAudioRecording();
+    // Start recordings only after the composed mediaStream has tracks.
+    // Poll briefly because `mediaStreamRef.current` is mutated, not a state value.
+    let started = false;
+    const tryStart = () => {
+      const s = mediaStreamRef.current;
+      if (!started && s && s.getTracks().length > 0) {
+        startVideoRecording();
+        startAudioRecording();
+        started = true;
+      }
+    };
+
+    tryStart();
+    const iv = setInterval(tryStart, 200);
+    const to = setTimeout(() => clearInterval(iv), 5000);
 
     return () => {
-      stopVideoRecording();
-      stopAudioRecording();
+      clearInterval(iv);
+      clearTimeout(to);
+      if (started) {
+        stopVideoRecording();
+        stopAudioRecording();
+      }
     };
-  }, []);
+  }, [
+    startVideoRecording,
+    startAudioRecording,
+    stopVideoRecording,
+    stopAudioRecording,
+  ]);
 
   ////////// Initialize chat with first question //////////
   useEffect(() => {
+    return;
     const init = async () => {
       if (chats.length > 0 || isGenerating) return;
 
@@ -181,7 +273,7 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
 
   return {
     // Stream states
-    mediaStream: mediaStreamRef.current,
+    mediaStream,
     isVideoEnabled,
     isAudioEnabled,
     isRecording,
