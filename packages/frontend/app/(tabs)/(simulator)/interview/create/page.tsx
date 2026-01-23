@@ -13,10 +13,11 @@ import {
   type DocType,
 } from "@/app/(tabs)/(simulator)/components/document-card";
 import { useDocuments } from "@/app/hooks/use-documents";
+import { createInterviewAction } from "./actions";
 
 type InterviewMode = "live" | "tech";
 
-interface SelectedDocs {
+export interface SelectedDocs {
   COVER_LETTER: string | null;
   PORTFOLIO: string | null;
 }
@@ -52,50 +53,19 @@ export default function InterviewCreatePage() {
   };
 
   const handleStartSimulation = async (): Promise<void> => {
-    if (!title || (!selectedDocs.COVER_LETTER && !selectedDocs.PORTFOLIO))
-      setIsSubmitting(true);
+    if (!title || !selectedDocs.COVER_LETTER || !selectedDocs.PORTFOLIO) {
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      const isTech = mode === "tech";
-      const endpoint = isTech
-        ? "/interview/tech/create"
-        : "/interview/coding/create";
-
-      const requestBody = isTech
-        ? {
-            documentIds: [
-              selectedDocs.COVER_LETTER,
-              selectedDocs.PORTFOLIO,
-            ].filter(Boolean),
-          }
-        : {
-            simulationTitle: title,
-            language: "javascript",
-          };
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        },
-      );
-
-      if (!response.ok) throw new Error("인터뷰 생성 실패");
-
-      const data = await response.json();
-
-      const interviewId = data.interviewId;
+      await createInterviewAction(mode, title, selectedDocs);
 
       router.push(`/interview/1/ready`);
     } catch (error) {
-      console.error("Error:", error);
-      alert("생성 중 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
+      console.error("인터뷰 생성 중 오류 발생:", error);
+      alert("인터뷰 생성에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
