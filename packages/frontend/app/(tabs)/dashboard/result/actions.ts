@@ -1,8 +1,23 @@
 "use server";
 
 interface IFeedbackResponse {
-    score: string;
-    feedback: string;
+  score: string;
+  feedback: string;
+}
+
+export async function startFeedback() {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/interview/feedback`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interviewId: "1" }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("API 요청 실패");
+  }
 }
 
 export async function getFeedback({ interviewId }: { interviewId: string }) {

@@ -9,30 +9,13 @@ import Panel from "./components/panel";
 import Tip from "./components/tip";
 import { getHistory } from "../../(simulator)/interview/[id]/actions";
 import Score from "./components/score";
-import { getFeedback } from "./actions";
+import { getFeedback, startFeedback } from "./actions";
 import AISummary from "./components/ai-summary";
 
-async function startFeedback() {
-  "use server";
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/interview/feedback`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ interviewId: "1" }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("API 요청 실패");
-  }
-}
-
 export default async function InterviewResultPage() {
-  await startFeedback();
   const { history } = await getHistory({ interviewId: "1" });
   const feedbackResult = await getFeedback({ interviewId: "1" });
+  await startFeedback();
 
   return (
     <div className="mt-5 w-full pb-5">
@@ -49,17 +32,15 @@ export default async function InterviewResultPage() {
           </div>
         </div>
         <div className="flex flex-col gap-6 md:flex-row">
-          {
-            <Panel className="flex-1 p-5">
-              <Score score={+feedbackResult.score} />
-            </Panel>
-          }
-          <Panel className="flex-2 p-5">
+          <Panel className="flex-[1] p-5">
+            <Score score={+feedbackResult.score} />
+          </Panel>
+          <Panel className="flex-[2] p-5">
             <RecentRecording />
           </Panel>
         </div>
         <div className="flex flex-col gap-6 md:flex-row">
-          <Panel className="flex flex-2 flex-col overflow-y-scroll p-5">
+          <Panel className="flex-[2] flex-col overflow-y-scroll p-5">
             <ChatHistory
               chatMessages={buildChatHistory(history)}
               className="max-h-120"
