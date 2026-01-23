@@ -15,13 +15,14 @@ export async function createInterviewAction(
   const requestBody = isTech
     ? {
         documentIds: [selectedDocs.COVER_LETTER, selectedDocs.PORTFOLIO].filter(
-          Boolean,
+          (id): id is string => Boolean(id),
         ),
       }
     : {
         simulationTitle: title,
         language: "javascript",
       };
+
   const response = await fetch(
     `${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
     {
@@ -35,7 +36,8 @@ export async function createInterviewAction(
   );
 
   if (!response.ok) {
-    throw new Error("인터뷰 생성 실패");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "인터뷰 생성 실패");
   }
 
   return await response.json();

@@ -52,20 +52,27 @@ export default function InterviewCreatePage() {
     }));
   };
 
-  const handleStartSimulation = async (): Promise<void> => {
-    if (!title || !selectedDocs.COVER_LETTER || !selectedDocs.PORTFOLIO) {
-      return;
+  const handleStartSimulation = async () => {
+    if (mode === "live" && !title) return alert("제목을 입력해주세요.");
+    if (
+      mode === "tech" &&
+      !selectedDocs.COVER_LETTER &&
+      !selectedDocs.PORTFOLIO
+    ) {
+      return alert("최소 하나의 문서를 선택해주세요.");
     }
 
     setIsSubmitting(true);
 
     try {
-      await createInterviewAction(mode, title, selectedDocs);
+      const result = await createInterviewAction(mode, title, selectedDocs);
 
       router.push(`/interview/1/ready`);
-    } catch (error) {
-      console.error("인터뷰 생성 중 오류 발생:", error);
-      alert("인터뷰 생성에 실패했습니다. 다시 시도해주세요.");
+    } catch (error: unknown) {
+      console.error("인터뷰 생성 중 에러:", error);
+      alert(error instanceof Error ? error.message : "오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
