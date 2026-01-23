@@ -217,7 +217,6 @@ export const useInterviewControls = (history: IHistoryItem[] = []) => {
 
   ////////// Initialize chat with first question //////////
   useEffect(() => {
-    return;
     const init = async () => {
       if (chats.length > 0 || isGenerating) return;
 
